@@ -1,0 +1,6 @@
+{
+  "name": "École Primaire Abou El Kacem Chebbi - Système de Gestion Scolaire",
+  "description": "Application web de gestion d'école primaire mono-école conforme au cahier des charges : gestion des élèves, classes, matières, emplois du temps avec détection des conflits, notes et bulletins PDF, finances et reçus automatiques, devoirs, messagerie sécurisée et PWA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
