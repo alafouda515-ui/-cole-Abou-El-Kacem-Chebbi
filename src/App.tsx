@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar, TabKey } from './components/Sidebar';
@@ -14,10 +14,17 @@ import { MessagingTab } from './components/Messaging/MessagingTab';
 import { AuditTab } from './components/Audit/AuditTab';
 import { PrintableReportCardModal } from './components/Modals/PrintableReportCardModal';
 import { PrintableReceiptModal } from './components/Modals/PrintableReceiptModal';
-import { Student, Payment } from './types';
+import { LoginPage } from './pages/Auth/LoginPage';
+import { RegisterSchoolPage } from './pages/Auth/RegisterSchoolPage';
+import { SuperAdminDashboard } from './pages/SuperAdmin/SuperAdminDashboard';
+import { Student, Payment, UserRole } from './types';
+import { authService } from './services/api';
 
-const MainLayout: React.FC = () => {
-  const { students, payments } = useApp();
+const MainLayout: React.FC<{
+  onLogout: () => void;
+  onBackToSuperAdmin?: () => void;
+}> = ({ onLogout, onBackToSuperAdmin }) => {
+  const { students } = useApp();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
 
   // Modal States
@@ -43,7 +50,7 @@ const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
       {/* Top Header */}
-      <Header />
+      <Header onBackToSuperAdmin={onBackToSuperAdmin} onLogout={onLogout} />
 
       {/* Main Workspace: Sidebar + Content */}
       <div className="flex-1 flex overflow-hidden">
@@ -92,10 +99,130 @@ const MainLayout: React.FC = () => {
   );
 };
 
+const AppContent: React.FC = () => {
+  const { currentUser, setCurrentUser, currentSchool, setCurrentSchool, reloadSchoolData } = useApp();
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return !!localStorage.getItem('edusaas_token');
+  });
+
+  // Track if Super Admin is currently inspecting a specific school
+  const [superAdminActiveSchoolId, setSuperAdminActiveSchoolId] = useState<string | null>(null);
+
+  // Check token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('edusaas_token');
+    if (token) {
+      setIsAuthenticated(true);
+      // Validate session with backend
+      authService
+        .getMe()
+        .then((res) => {
+          if (res.success && res.user) {
+            const normalizedRole: UserRole =
+              res.user.role === 'SCHOOL_ADMIN' ? 'ADMIN' : (res.user.role as UserRole);
+            setCurrentUser({
+              id: res.user.id,
+              name: `${res.user.first_name} ${res.user.last_name}`,
+              email: res.user.email,
+              role: normalizedRole,
+              phone: res.user.phone,
+              schoolId: res.user.school_id,
+              avatar: res.user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+            });
+            if (res.school) {
+              setCurrentSchool(res.school);
+            }
+          }
+        })
+        .catch(() => {
+          // Token invalid or expired
+          setIsAuthenticated(false);
+          authService.logout();
+        });
+    }
+  }, []);
+
+  const handleLoginSuccess = (user: any, school: any) => {
+    setIsAuthenticated(true);
+    const normalizedRole: UserRole =
+      user.role === 'SCHOOL_ADMIN' ? 'ADMIN' : (user.role as UserRole);
+    setCurrentUser({
+      id: user.id,
+      name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      role: normalizedRole,
+      phone: user.phone,
+      schoolId: user.school_id,
+      avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+    });
+    if (school) {
+      setCurrentSchool(school);
+    }
+    setSuperAdminActiveSchoolId(null);
+    reloadSchoolData();
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsAuthenticated(false);
+    setSuperAdminActiveSchoolId(null);
+  };
+
+  // If unauthenticated: render Login or Register
+  if (!isAuthenticated) {
+    if (authView === 'register') {
+      return <RegisterSchoolPage onNavigateLogin={() => setAuthView('login')} />;
+    }
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateRegister={() => setAuthView('register')}
+      />
+    );
+  }
+
+  // If user is SUPER_ADMIN:
+  if (currentUser.role === 'SUPER_ADMIN') {
+    // If inspecting a school, render MainLayout with back button
+    if (superAdminActiveSchoolId) {
+      return (
+        <MainLayout
+          onLogout={handleLogout}
+          onBackToSuperAdmin={() => setSuperAdminActiveSchoolId(null)}
+        />
+      );
+    }
+    // Otherwise render platform control dashboard
+    return (
+      <SuperAdminDashboard
+        onLogout={handleLogout}
+        onSelectSchool={(schoolId, schoolName) => {
+          setSuperAdminActiveSchoolId(schoolId);
+          setCurrentSchool({
+            id: schoolId,
+            name: schoolName,
+            slug: schoolName.toLowerCase().replace(/\s+/g, '-'),
+            address: 'Établissement rattaché',
+            email: 'admin@ecole.com',
+            phone: '',
+            manager_name: 'Direction',
+            status: 'ACTIVE'
+          });
+          reloadSchoolData();
+        }}
+      />
+    );
+  }
+
+  // School Users (SCHOOL_ADMIN, TEACHER, STUDENT, PARENT, ACCOUNTANT)
+  return <MainLayout onLogout={handleLogout} />;
+};
+
 export default function App() {
   return (
     <AppProvider>
-      <MainLayout />
+      <AppContent />
     </AppProvider>
   );
 }

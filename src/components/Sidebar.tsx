@@ -31,10 +31,12 @@ interface Props {
 }
 
 export const Sidebar: React.FC<Props> = ({ activeTab, onTabChange }) => {
-  const { currentUser } = useApp();
+  const { currentUser, currentSchool } = useApp();
 
   const getNavItems = () => {
     switch (currentUser.role) {
+      case 'SUPER_ADMIN':
+      case 'SCHOOL_ADMIN':
       case 'ADMIN':
         return [
           { key: 'dashboard' as TabKey, label: 'Tableau de bord', icon: LayoutDashboard },
@@ -121,11 +123,11 @@ export const Sidebar: React.FC<Props> = ({ activeTab, onTabChange }) => {
 
       {/* School details footer in sidebar */}
       <div className="px-4 py-3 mx-3 bg-slate-800/60 rounded-xl border border-slate-700/50 text-[11px] text-slate-400">
-        <p className="font-bold text-slate-200">École A. E. Chebbi</p>
-        <p className="text-[10px] text-slate-400">Déploiement Mono-école</p>
+        <p className="font-bold text-slate-200 truncate">{currentSchool?.name || 'Plateforme Scolaire'}</p>
+        <p className="text-[10px] text-slate-400">ID: {currentSchool?.id || 'Multi-Tenant'}</p>
         <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[10px]">
-          <span className="text-emerald-400 font-semibold">● PWA Active</span>
-          <span className="text-slate-400">v1.0.0</span>
+          <span className="text-emerald-400 font-semibold">● SaaS Actif</span>
+          <span className="text-slate-400">v2.0 PostgreSQL</span>
         </div>
       </div>
     </aside>

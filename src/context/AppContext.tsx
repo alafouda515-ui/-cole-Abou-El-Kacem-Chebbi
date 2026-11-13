@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   User,
+  School,
   Student,
   ClassRoom,
   Subject,
@@ -36,6 +37,18 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS
 } from '../data/initialData';
+import {
+  authService,
+  schoolService,
+  studentService,
+  academicService,
+  scheduleService,
+  gradeService,
+  absenceService,
+  financeService,
+  homeworkService,
+  messageService
+} from '../services/api';
 
 interface ConflictCheckResult {
   hasConflict: boolean;
@@ -43,10 +56,13 @@ interface ConflictCheckResult {
 }
 
 interface AppContextType {
-  // Session & Academic Year
+  // Session & Multi-Tenant School
   currentUser: User;
   setCurrentUser: (user: User) => void;
+  currentSchool: School | null;
+  setCurrentSchool: (school: School | null) => void;
   switchRole: (role: UserRole) => void;
+  logout: () => void;
   academicYear: string;
   setAcademicYear: (year: string) => void;
   availableYears: string[];
@@ -68,6 +84,10 @@ interface AppContextType {
   announcements: Announcement[];
   auditLogs: AuditLog[];
   notifications: NotificationLog[];
+
+  // Data Loading
+  reloadSchoolData: () => Promise<void>;
+  isLoadingData: boolean;
 
   // CRUD Students
   addStudent: (student: Omit<Student, 'id' | 'matricule'>) => Student;
@@ -147,146 +167,160 @@ interface AppContextType {
   publishCorrectiveAnnouncement: (originalId: string, newTitle: string, newContent: string) => void;
   logConversationAccess: (conversationInfo: string) => void;
 
-  // Helpers & Reset
+  // Reset
   resetToDefaultData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Local storage keys
-  const STORAGE_KEY = 'ecole_chebbi_app_data_v1';
-
   const [academicYear, setAcademicYear] = useState<string>('2025-2026');
   const availableYears = ['2024-2025', '2025-2026', '2026-2027'];
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
 
-  // Current User (Defaults to Dr Hamdi Hassen - Admin)
+  // Active School state
+  const [currentSchool, setCurrentSchool] = useState<School | null>(() => {
+    const saved = localStorage.getItem('edusaas_school');
+    return saved
+      ? JSON.parse(saved)
+      : {
+          id: 'sch_chebbi_001',
+          name: 'École Primaire Abou El Kacem Chebbi',
+          slug: 'ecole-chebbi',
+          address: 'Avenue Habib Bourguiba, Sousse, Tunisie',
+          email: 'direction@ecole-chebbi.tn',
+          phone: '+216 73 224 800',
+          manager_name: 'Dr. Hamdi Hassen',
+          status: 'ACTIVE'
+        };
+  });
+
+  // Current User (Defaults to stored auth or Dr. Hamdi Hassen)
   const [currentUser, setCurrentUser] = useState<User>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_user');
-    return saved ? JSON.parse(saved) : INITIAL_USERS[0];
+    const saved = localStorage.getItem('edusaas_user');
+    if (saved) {
+      const u = JSON.parse(saved);
+      // Map role to match format
+      const normalizedRole: UserRole =
+        u.role === 'SCHOOL_ADMIN' ? 'ADMIN' : (u.role as UserRole);
+      return {
+        id: u.id,
+        name: u.first_name ? `${u.first_name} ${u.last_name}` : u.name || 'Utilisateur',
+        email: u.email,
+        role: normalizedRole,
+        avatar: u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+        phone: u.phone,
+        schoolId: u.school_id,
+        linkedStudentId: u.linked_student_id
+      };
+    }
+    return INITIAL_USERS[0];
   });
 
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-
-  // States
-  const [classes, setClasses] = useState<ClassRoom[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_classes');
-    return saved ? JSON.parse(saved) : INITIAL_CLASSES;
-  });
-
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_subjects');
-    return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
-  });
-
-  const [rooms, setRooms] = useState<Room[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_rooms');
-    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
-  });
-
-  const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_students');
-    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
-  });
-
-  const [schedule, setSchedule] = useState<ScheduleSlot[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_schedule');
-    return saved ? JSON.parse(saved) : INITIAL_SCHEDULE;
-  });
-
-  const [grades, setGrades] = useState<Grade[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_grades');
-    return saved ? JSON.parse(saved) : INITIAL_GRADES;
-  });
-
-  const [absences, setAbsences] = useState<Absence[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_absences');
-    return saved ? JSON.parse(saved) : INITIAL_ABSENCES;
-  });
-
+  const [classes, setClasses] = useState<ClassRoom[]>(INITIAL_CLASSES);
+  const [subjects, setSubjects] = useState<Subject[]>(INITIAL_SUBJECTS);
+  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>(INITIAL_SCHEDULE);
+  const [grades, setGrades] = useState<Grade[]>(INITIAL_GRADES);
+  const [absences, setAbsences] = useState<Absence[]>(INITIAL_ABSENCES);
   const [feePlan] = useState<PaymentFeePlan>(INITIAL_FEE_PLAN);
+  const [payments, setPayments] = useState<Payment[]>(INITIAL_PAYMENTS);
+  const [homeworks, setHomeworks] = useState<Homework[]>(INITIAL_HOMEWORK);
+  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>(INITIAL_SUBMISSIONS);
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [notifications, setNotifications] = useState<NotificationLog[]>(INITIAL_NOTIFICATIONS);
 
-  const [payments, setPayments] = useState<Payment[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_payments');
-    return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
-  });
+  // Fetch school data from REST API backend
+  const reloadSchoolData = async () => {
+    const token = localStorage.getItem('edusaas_token');
+    if (!token) return;
 
-  const [homeworks, setHomeworks] = useState<Homework[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_homeworks');
-    return saved ? JSON.parse(saved) : INITIAL_HOMEWORK;
-  });
+    try {
+      setIsLoadingData(true);
+      const [
+        studentsRes,
+        classesRes,
+        subjectsRes,
+        roomsRes,
+        scheduleRes,
+        gradesRes,
+        absencesRes,
+        paymentsRes,
+        homeworkRes,
+        messagesRes,
+        annRes,
+        auditRes
+      ] = await Promise.allSettled([
+        studentService.getStudents(),
+        academicService.getClasses(),
+        academicService.getSubjects(),
+        academicService.getRooms(),
+        scheduleService.getSchedule(),
+        gradeService.getGrades(),
+        absenceService.getAbsences(),
+        financeService.getPayments(),
+        homeworkService.getHomeworks(),
+        messageService.getMessages(),
+        messageService.getAnnouncements(),
+        messageService.getAuditLogs()
+      ]);
 
-  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_submissions');
-    return saved ? JSON.parse(saved) : INITIAL_SUBMISSIONS;
-  });
+      if (studentsRes.status === 'fulfilled' && studentsRes.value?.students) {
+        setStudents(studentsRes.value.students);
+      }
+      if (classesRes.status === 'fulfilled' && classesRes.value?.classes) {
+        setClasses(classesRes.value.classes);
+      }
+      if (subjectsRes.status === 'fulfilled' && subjectsRes.value?.subjects) {
+        setSubjects(subjectsRes.value.subjects);
+      }
+      if (roomsRes.status === 'fulfilled' && roomsRes.value?.rooms) {
+        setRooms(roomsRes.value.rooms);
+      }
+      if (scheduleRes.status === 'fulfilled' && scheduleRes.value?.slots) {
+        setSchedule(scheduleRes.value.slots);
+      }
+      if (gradesRes.status === 'fulfilled' && gradesRes.value?.grades) {
+        setGrades(gradesRes.value.grades);
+      }
+      if (absencesRes.status === 'fulfilled' && absencesRes.value?.absences) {
+        setAbsences(absencesRes.value.absences);
+      }
+      if (paymentsRes.status === 'fulfilled' && paymentsRes.value?.payments) {
+        setPayments(paymentsRes.value.payments);
+      }
+      if (homeworkRes.status === 'fulfilled' && homeworkRes.value?.homeworks) {
+        setHomeworks(homeworkRes.value.homeworks);
+      }
+      if (messagesRes.status === 'fulfilled' && messagesRes.value?.messages) {
+        setMessages(messagesRes.value.messages);
+      }
+      if (annRes.status === 'fulfilled' && annRes.value?.announcements) {
+        setAnnouncements(annRes.value.announcements);
+      }
+      if (auditRes.status === 'fulfilled' && auditRes.value?.auditLogs) {
+        setAuditLogs(auditRes.value.auditLogs);
+      }
+    } catch (err) {
+      console.warn('Erreur chargement backend API:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_messages');
-    return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
-  });
+  // Initial load on mount or when token changes
+  useEffect(() => {
+    reloadSchoolData();
+  }, [currentSchool?.id]);
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_announcements');
-    return saved ? JSON.parse(saved) : INITIAL_ANNOUNCEMENTS;
-  });
-
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_audit');
-    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
-  });
-
-  const [notifications, setNotifications] = useState<NotificationLog[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY + '_notifs');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
-  });
-
-  // Sync with LocalStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_classes', JSON.stringify(classes));
-  }, [classes]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_subjects', JSON.stringify(subjects));
-  }, [subjects]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_rooms', JSON.stringify(rooms));
-  }, [rooms]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_students', JSON.stringify(students));
-  }, [students]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_schedule', JSON.stringify(schedule));
-  }, [schedule]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_grades', JSON.stringify(grades));
-  }, [grades]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_absences', JSON.stringify(absences));
-  }, [absences]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_payments', JSON.stringify(payments));
-  }, [payments]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_homeworks', JSON.stringify(homeworks));
-  }, [homeworks]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_submissions', JSON.stringify(submissions));
-  }, [submissions]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_messages', JSON.stringify(messages));
-  }, [messages]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_announcements', JSON.stringify(announcements));
-  }, [announcements]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_audit', JSON.stringify(auditLogs));
-  }, [auditLogs]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_notifs', JSON.stringify(notifications));
-  }, [notifications]);
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + '_user', JSON.stringify(currentUser));
-  }, [currentUser]);
+  const logout = () => {
+    authService.logout();
+    setCurrentSchool(null);
+  };
 
   // Audit Logger Helper
   const logAudit = (
@@ -314,6 +348,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const userFound = users.find((u) => u.role === role);
     if (userFound) {
       setCurrentUser(userFound);
+    } else {
+      // Fallback update current role
+      setCurrentUser((prev) => ({ ...prev, role }));
     }
   };
 
@@ -329,12 +366,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       matricule
     };
     setStudents((prev) => [newStudent, ...prev]);
+
+    // Async sync with REST API
+    studentService.createStudent({
+      firstName: newStudent.firstName,
+      lastName: newStudent.lastName,
+      birthDate: newStudent.birthDate,
+      gender: newStudent.gender,
+      classId: newStudent.classId,
+      parentName: newStudent.parentName,
+      parentEmail: newStudent.parentEmail,
+      parentPhone: newStudent.parentPhone,
+      address: newStudent.address,
+      medicalNotes: newStudent.medicalNotes,
+      academicYear: newStudent.academicYear
+    }).catch((err) => console.warn('API error createStudent:', err));
+
     logAudit('CREATION', 'Student', newId, `Inscription élève: ${newStudent.firstName} ${newStudent.lastName} (${matricule})`);
     return newStudent;
   };
 
   const updateStudent = (updatedStudent: Student) => {
     setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+    studentService.updateStudent(updatedStudent.id, updatedStudent).catch((err) =>
+      console.warn('API error updateStudent:', err)
+    );
     logAudit('MODIFICATION', 'Student', updatedStudent.id, `Mise à jour dossier de l'élève ${updatedStudent.firstName} ${updatedStudent.lastName}`);
   };
 
@@ -342,8 +398,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const student = students.find((s) => s.id === id);
     if (!student) return { success: false, message: 'Élève non trouvé' };
 
-    // Soft delete / Archival to preserve academic history as required
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'RADIE' } : s)));
+    studentService.deleteStudent(id).catch((err) => console.warn('API error deleteStudent:', err));
+
     logAudit('SUPPRESSION', 'Student', id, `Radiation (suppression logique) de l'élève ${student.firstName} ${student.lastName}`);
     return { success: true, message: `L'élève ${student.firstName} ${student.lastName} a été radié et son historique archivé.` };
   };
@@ -370,6 +427,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'cls-' + Date.now();
     const newCls: ClassRoom = { ...clsData, id: newId };
     setClasses((prev) => [...prev, newCls]);
+
+    academicService.createClass(newCls).catch((err) =>
+      console.warn('API error createClass:', err)
+    );
+
     logAudit('CREATION', 'ClassRoom', newId, `Création classe: ${newCls.name} (${newCls.academicYear})`);
     return newCls;
   };
@@ -380,7 +442,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteClass = (id: string): { success: boolean; message: string } => {
-    // Controlled deletion: forbidden if students are assigned without reallocation
     const studentsInClass = students.filter((s) => s.classId === id && s.status === 'ACTIF');
     if (studentsInClass.length > 0) {
       return {
@@ -390,6 +451,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     const cls = classes.find((c) => c.id === id);
     setClasses((prev) => prev.filter((c) => c.id !== id));
+    academicService.deleteClass(id).catch((err) => console.warn('API error deleteClass:', err));
+
     logAudit('SUPPRESSION', 'ClassRoom', id, `Suppression classe ${cls?.name || id}`);
     return { success: true, message: 'Classe supprimée avec succès.' };
   };
@@ -401,6 +464,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'sub-' + Date.now();
     const newSub: Subject = { ...subData, id: newId };
     setSubjects((prev) => [...prev, newSub]);
+
+    academicService.createSubject(newSub).catch((err) =>
+      console.warn('API error createSubject:', err)
+    );
+
     logAudit('CREATION', 'Subject', newId, `Ajout matière ${newSub.name} (coeff ${newSub.coefficient})`);
     return newSub;
   };
@@ -411,7 +479,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteSubject = (id: string): { success: boolean; message: string } => {
-    // Controlled deletion: forbidden if grades or homework are linked
     const gradesLinked = grades.filter((g) => g.subjectId === id);
     if (gradesLinked.length > 0) {
       return {
@@ -421,6 +488,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     const sub = subjects.find((s) => s.id === id);
     setSubjects((prev) => prev.filter((s) => s.id !== id));
+    academicService.deleteSubject(id).catch((err) => console.warn('API error deleteSubject:', err));
+
     logAudit('SUPPRESSION', 'Subject', id, `Suppression matière ${sub?.name || id}`);
     return { success: true, message: 'Matière supprimée avec succès.' };
   };
@@ -432,6 +501,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'rm-' + Date.now();
     const newRm: Room = { ...rmData, id: newId };
     setRooms((prev) => [...prev, newRm]);
+
+    academicService.createRoom(newRm).catch((err) =>
+      console.warn('API error createRoom:', err)
+    );
+
     logAudit('CREATION', 'Room', newId, `Ajout salle ${newRm.name} (capacité ${newRm.capacity})`);
     return newRm;
   };
@@ -451,6 +525,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     const rm = rooms.find((r) => r.id === id);
     setRooms((prev) => prev.filter((r) => r.id !== id));
+    academicService.deleteRoom(id).catch((err) => console.warn('API error deleteRoom:', err));
+
     logAudit('SUPPRESSION', 'Room', id, `Suppression salle ${rm?.name || id}`);
     return { success: true, message: 'Salle supprimée avec succès.' };
   };
@@ -485,7 +561,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const overlaps = Math.max(newStart, exStart) < Math.min(newEnd, exEnd);
 
       if (overlaps) {
-        // Conflict 1: Same Teacher booked at same time
         if (existing.teacherId === newSlot.teacherId) {
           const teacher = users.find((u) => u.id === newSlot.teacherId);
           return {
@@ -493,7 +568,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             message: `Conflit d'enseignant : ${teacher?.name || "Cet enseignant"} est déjà en cours sur ce créneau (${existing.dayOfWeek} ${existing.startTime}-${existing.endTime}).`
           };
         }
-        // Conflict 2: Same Room booked at same time
         if (existing.roomId === newSlot.roomId) {
           const room = rooms.find((r) => r.id === newSlot.roomId);
           return {
@@ -501,7 +575,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             message: `Conflit de salle : La ${room?.name || "salle"} est déjà occupée sur ce créneau (${existing.dayOfWeek} ${existing.startTime}-${existing.endTime}).`
           };
         }
-        // Conflict 3: Same Class has two simultaneous classes
         if (existing.classId === newSlot.classId) {
           const cls = classes.find((c) => c.id === newSlot.classId);
           return {
@@ -523,6 +596,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'slot-' + Date.now();
     const newSlot: ScheduleSlot = { ...slotData, id: newId };
     setSchedule((prev) => [...prev, newSlot]);
+
+    scheduleService.createSlot(newSlot).catch((err) =>
+      console.warn('API error createSlot:', err)
+    );
+
     logAudit('CREATION', 'ScheduleSlot', newId, `Créneau programmé : ${newSlot.dayOfWeek} ${newSlot.startTime}-${newSlot.endTime}`);
     return { success: true };
   };
@@ -539,6 +617,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteScheduleSlot = (id: string) => {
     setSchedule((prev) => prev.filter((s) => s.id !== id));
+    scheduleService.deleteSlot(id).catch((err) => console.warn('API error deleteSlot:', err));
     logAudit('SUPPRESSION', 'ScheduleSlot', id, `Suppression d'un créneau d'emploi du temps`);
   };
 
@@ -549,6 +628,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'grd-' + Date.now();
     const newGrade: Grade = { ...grdData, id: newId };
     setGrades((prev) => [...prev, newGrade]);
+
+    gradeService.createGrade(newGrade).catch((err) =>
+      console.warn('API error createGrade:', err)
+    );
+
     logAudit('CREATION', 'Grade', newId, `Attribution note: ${newGrade.score}/20 (coeff ${newGrade.coefficient})`);
   };
 
@@ -559,6 +643,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteGrade = (id: string) => {
     setGrades((prev) => prev.filter((g) => g.id !== id));
+    gradeService.deleteGrade(id).catch((err) => console.warn('API error deleteGrade:', err));
     logAudit('SUPPRESSION', 'Grade', id, `Suppression d'une note d'évaluation`);
   };
 
@@ -612,6 +697,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newId = 'abs-' + Date.now();
     const newAbs: Absence = { ...absData, id: newId };
     setAbsences((prev) => [newAbs, ...prev]);
+
+    absenceService.createAbsence(newAbs).catch((err) =>
+      console.warn('API error createAbsence:', err)
+    );
+
     logAudit('CREATION', 'Absence', newId, `Enregistrement absence (${newAbs.durationHours}h le ${newAbs.date})`);
   };
 
@@ -628,6 +718,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : a
       )
     );
+    absenceService.justifyAbsence(id, reason).catch((err) =>
+      console.warn('API error justifyAbsence:', err)
+    );
     logAudit('MODIFICATION', 'Absence', id, `Dépôt de justification par le parent: ${reason}`);
   };
 
@@ -643,16 +736,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : a
       )
     );
+    absenceService.validateAbsence(id, justified).catch((err) =>
+      console.warn('API error validateAbsence:', err)
+    );
     logAudit('MODIFICATION', 'Absence', id, `Validation administrative de l'absence: ${justified ? 'Justifiée' : 'Rejetée'}`);
   };
 
   const deleteAbsence = (id: string) => {
     setAbsences((prev) => prev.filter((a) => a.id !== id));
+    absenceService.deleteAbsence(id).catch((err) =>
+      console.warn('API error deleteAbsence:', err)
+    );
     logAudit('SUPPRESSION', 'Absence', id, `Suppression fiche d'absence`);
   };
 
   // ----------------------------------------------------
-  // FINANCES & AUTOMATED NOTIFICATIONS (Cahier des charges 8.2)
+  // FINANCES & AUTOMATED NOTIFICATIONS
   // ----------------------------------------------------
   const getStudentFinancialBalance = (studentId: string) => {
     const studentPayments = payments.filter(
@@ -683,14 +782,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPayments((prev) => [newPayment, ...prev]);
 
-    // Calculate balance
+    // Async sync with REST API
+    financeService.recordPayment(newPayment).catch((err) =>
+      console.warn('API error recordPayment:', err)
+    );
+
     const student = students.find((s) => s.id === paymentData.studentId);
     const currentPaid = payments
       .filter((p) => p.studentId === paymentData.studentId && p.academicYear === paymentData.academicYear && p.status === 'PAYE')
       .reduce((sum, p) => sum + p.amount, 0) + paymentData.amount;
     const remainingBalance = Math.max(0, feePlan.totalAnnual - currentPaid);
 
-    // Requirement 8.2: Automatically send internal message to parent + dispatch notification
     const parentUser = users.find((u) => u.role === 'PARENT' && u.linkedStudentId === paymentData.studentId);
     const parentRecipientId = parentUser ? parentUser.id : 'user-parent-1';
     const parentName = student ? student.parentName : 'Parent d\'élève';
@@ -713,7 +815,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setMessages((prev) => [autoMessage, ...prev]);
 
-    // Journalize the notification (Requirement 8.2.3)
     const notificationEntry: NotificationLog = {
       id: 'notif-' + Date.now(),
       date: new Date().toISOString(),
@@ -755,7 +856,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newHw: Homework = { ...hwData, id: newId };
     setHomeworks((prev) => [newHw, ...prev]);
 
-    // Send push notification to students/parents
+    homeworkService.createHomework(newHw).catch((err) =>
+      console.warn('API error createHomework:', err)
+    );
+
     const cls = classes.find((c) => c.id === newHw.classId);
     const sub = subjects.find((s) => s.id === newHw.subjectId);
     const notif: NotificationLog = {
@@ -801,7 +905,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const dueDate = hw ? new Date(hw.dueDate + 'T23:59:59') : now;
     const isLate = now.getTime() > dueDate.getTime();
 
-    // Check if previous submission exists (can replace before due date)
     const existingIndex = submissions.findIndex(
       (s) => s.homeworkId === subData.homeworkId && s.studentId === subData.studentId
     );
@@ -822,7 +925,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       logAudit('CREATION', 'HomeworkSubmission', submissionRecord.id, `Dépôt de devoir par l'élève.`);
     }
 
-    // Notification to teacher
+    homeworkService.submitHomework(subData.homeworkId, submissionRecord).catch((err) =>
+      console.warn('API error submitHomework:', err)
+    );
+
     if (hw) {
       const teacher = users.find((u) => u.id === hw.teacherId);
       const student = students.find((s) => s.id === subData.studentId);
@@ -844,6 +950,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const now = new Date().toISOString();
     setSubmissions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, score, teacherFeedback: feedback, gradedAt: now } : s))
+    );
+
+    homeworkService.gradeSubmission(id, score, feedback).catch((err) =>
+      console.warn('API error gradeSubmission:', err)
     );
 
     const sub = submissions.find((s) => s.id === id);
@@ -874,6 +984,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : s
       )
     );
+    homeworkService.acknowledgeByParent(submissionId).catch((err) =>
+      console.warn('API error acknowledgeByParent:', err)
+    );
     logAudit('MODIFICATION', 'HomeworkSubmission', submissionId, `Marquage "Vu par le parent" effectué.`);
   };
 
@@ -887,7 +1000,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ----------------------------------------------------
-  // MESSAGING & ANNOUNCEMENTS (RBAC & Immutability)
+  // MESSAGING & ANNOUNCEMENTS
   // ----------------------------------------------------
   const sendMessage = (msgData: {
     recipientId: string;
@@ -900,15 +1013,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const recipient = users.find((u) => u.id === msgData.recipientId);
     if (!recipient) return { success: false, error: 'Destinataire introuvable' };
 
-    // RBAC validation according to Cahier des charges 10.1 & 10.2:
-    // Teacher <-> Parent only
-    // Admin <-> Parent & Student
-    // Accountant <-> Parent
     const senderRole = currentUser.role;
     const recipientRole = recipient.role;
 
     const allowed =
       senderRole === 'ADMIN' ||
+      senderRole === 'SUPER_ADMIN' ||
+      senderRole === 'SCHOOL_ADMIN' ||
       (senderRole === 'TEACHER' && recipientRole === 'PARENT') ||
       (senderRole === 'PARENT' && (recipientRole === 'TEACHER' || recipientRole === 'ADMIN')) ||
       (senderRole === 'ACCOUNTANT' && recipientRole === 'PARENT') ||
@@ -939,8 +1050,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setMessages((prev) => [newMsg, ...prev]);
 
+    messageService.sendMessage(newMsg).catch((err) =>
+      console.warn('API error sendMessage:', err)
+    );
+
     if (!msgData.isDraft) {
-      // Create notification log
       const notif: NotificationLog = {
         id: 'notif-msg-' + Date.now(),
         date: new Date().toISOString(),
@@ -968,14 +1082,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const hideMessageForRecipient = (id: string) => {
-    // Soft hide on recipient side only, preserving audit trail and sender copy (Requirement 10.2)
     setMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, hiddenByRecipient: true } : m))
     );
+    messageService.hideMessage(id).catch((err) => console.warn('API error hideMessage:', err));
   };
 
   const publishAnnouncement = (annData: Omit<Announcement, 'id' | 'publishedAt' | 'authorName'>) => {
-    if (currentUser.role !== 'ADMIN') return;
     const newId = 'ann-' + Date.now();
     const newAnn: Announcement = {
       ...annData,
@@ -984,11 +1097,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authorName: currentUser.name
     };
     setAnnouncements((prev) => [newAnn, ...prev]);
+
+    messageService.createAnnouncement(newAnn).catch((err) =>
+      console.warn('API error createAnnouncement:', err)
+    );
+
     logAudit('CREATION', 'Announcement', newId, `Publication annonce officielle : "${newAnn.title}" (Cible: ${newAnn.targetRole})`);
   };
 
   const publishCorrectiveAnnouncement = (originalId: string, newTitle: string, newContent: string) => {
-    if (currentUser.role !== 'ADMIN') return;
     const original = announcements.find((a) => a.id === originalId);
     if (!original) return;
 
@@ -1012,9 +1129,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAudit('ACCES_HISTORIQUE', 'MessageConversation', 'conv', `Consultation de l'historique : ${conversationInfo}`);
   };
 
-  // Reset demo data
   const resetToDefaultData = () => {
-    localStorage.clear();
     setClasses(INITIAL_CLASSES);
     setSubjects(INITIAL_SUBJECTS);
     setRooms(INITIAL_ROOMS);
@@ -1037,7 +1152,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentUser,
         setCurrentUser,
+        currentSchool,
+        setCurrentSchool,
         switchRole,
+        logout,
         academicYear,
         setAcademicYear,
         availableYears,
@@ -1057,6 +1175,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         announcements,
         auditLogs,
         notifications,
+        reloadSchoolData,
+        isLoadingData,
         addStudent,
         updateStudent,
         deleteStudent,

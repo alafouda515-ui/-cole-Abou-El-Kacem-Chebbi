@@ -1,0 +1,537 @@
+{
+  "schools": [
+    {
+      "id": "sch_chebbi_sousse",
+      "name": "École Primaire Abou El Kacem Chebbi",
+      "address": "Avenue Habib Bourguiba, Sousse, Tunisie",
+      "email": "direction@ecole-chebbi.tn",
+      "phone": "+216 73 222 100",
+      "manager_name": "Dr. Hamdi Hassen",
+      "status": "ACTIVE",
+      "subscription_plan": "PREMIUM",
+      "created_at": "2025-09-01T08:00:00.000Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "sch_etoiles_tunis",
+      "name": "École Privée Les Étoiles de l'Avenir",
+      "address": "Les Berges du Lac 2, Tunis",
+      "email": "direction@etoiles-avenir.tn",
+      "phone": "+216 71 888 999",
+      "manager_name": "Mme Sonia Ben Mahmoud",
+      "status": "ACTIVE",
+      "subscription_plan": "STANDARD",
+      "created_at": "2025-10-15T09:30:00.000Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "sch_almanar_sfax",
+      "name": "Institut Primaire Al Manar",
+      "address": "Route de Téniour Km 2, Sfax",
+      "email": "contact@almanar-sfax.tn",
+      "phone": "+216 74 444 555",
+      "manager_name": "M. Mehdi Khemir",
+      "status": "PENDING",
+      "subscription_plan": "STANDARD",
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "sch_1794421656048_s30bj",
+      "name": "Lycée Pilote Bourguiba",
+      "address": "Rue de la République, Tunis",
+      "email": "direction@lycee-bourguiba.tn",
+      "phone": "+216 71 888 999",
+      "manager_name": "M. Slim Ben Amor",
+      "status": "ACTIVE",
+      "subscription_plan": "STANDARD",
+      "created_at": "2026-11-11T18:27:36.048Z",
+      "updated_at": "2026-11-11T18:27:43.970Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr_superadmin",
+      "school_id": null,
+      "email": "superadmin@edusaas.com",
+      "password_hash": "$2b$10$0wEiSLUMnSalsifN.LEcgOrIUbyt1NptEAM1iwJcKCVEpO0QEWV6O",
+      "first_name": "Alexandre",
+      "last_name": "Martin (Platform)",
+      "role": "SUPER_ADMIN",
+      "phone": "+33 6 12 34 56 78",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "is_active": true,
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_admin_chebbi",
+      "school_id": "sch_chebbi_sousse",
+      "email": "direction@ecole-chebbi.tn",
+      "password_hash": "$2b$10$ZxzIFU0qH.cRpIxszZDnSeCreDxwkLUIpRfoh5Kgv3P54jLussLVq",
+      "first_name": "Dr. Hamdi",
+      "last_name": "Hassen",
+      "role": "SCHOOL_ADMIN",
+      "phone": "+216 73 222 100",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "is_active": true,
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_teacher_mansour",
+      "school_id": "sch_chebbi_sousse",
+      "email": "youssef.mansour@ecole-chebbi.tn",
+      "password_hash": "$2b$10$6v9/X8IWfd9e65QanJi6m.Yq5bh5C2kFxwvyZkVCPzjKtbfEGgM0m",
+      "first_name": "Youssef",
+      "last_name": "Mansour",
+      "role": "TEACHER",
+      "phone": "+216 98 123 456",
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      "is_active": true,
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_student_rayan",
+      "school_id": "sch_chebbi_sousse",
+      "email": "rayan.bensalem@eleve-chebbi.tn",
+      "password_hash": "$2b$10$c//ar/07BusFu2gP3adyJ.RaYpeQS.DK0/pVSVQSX7Qjcfv2LP91O",
+      "first_name": "Rayan",
+      "last_name": "Ben Salem",
+      "role": "STUDENT",
+      "phone": "+216 22 555 888",
+      "avatar_url": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150",
+      "is_active": true,
+      "linked_student_id": "stu_chebbi_001",
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_admin_etoiles",
+      "school_id": "sch_etoiles_tunis",
+      "email": "direction@etoiles-avenir.tn",
+      "password_hash": "$2b$10$ZxzIFU0qH.cRpIxszZDnSeCreDxwkLUIpRfoh5Kgv3P54jLussLVq",
+      "first_name": "Sonia",
+      "last_name": "Ben Mahmoud",
+      "role": "SCHOOL_ADMIN",
+      "phone": "+216 71 888 999",
+      "avatar_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+      "is_active": true,
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_admin_almanar_pending",
+      "school_id": "sch_almanar_sfax",
+      "email": "contact@almanar-sfax.tn",
+      "password_hash": "$2b$10$m2BHnKEAQ9rqf2aFsBas1.e4wPmToInlp0umFwTDCRFWB6BLx.a2m",
+      "first_name": "Mehdi",
+      "last_name": "Khemir",
+      "role": "SCHOOL_ADMIN",
+      "phone": "+216 74 444 555",
+      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+      "is_active": false,
+      "created_at": "2026-11-11T18:27:19.419Z",
+      "updated_at": "2026-11-11T18:27:19.419Z"
+    },
+    {
+      "id": "usr_admin_1794421656048",
+      "school_id": "sch_1794421656048_s30bj",
+      "email": "direction@lycee-bourguiba.tn",
+      "password_hash": "$2b$10$67wCblcEoQbZ3dHwiCz3auMZO72iVL/SeJxQm0RowgbYNQeTEu/CO",
+      "first_name": "M.",
+      "last_name": "Slim Ben Amor",
+      "role": "SCHOOL_ADMIN",
+      "phone": "+216 71 888 999",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "is_active": true,
+      "created_at": "2026-11-11T18:27:36.048Z",
+      "updated_at": "2026-11-11T18:27:36.048Z"
+    }
+  ],
+  "classes": [
+    {
+      "id": "cls_cp_a",
+      "school_id": "sch_chebbi_sousse",
+      "name": "CP - Section A",
+      "level": "CP",
+      "section": "A",
+      "max_capacity": 25,
+      "academic_year": "2025-2026",
+      "main_teacher_id": "usr_teacher_mansour"
+    },
+    {
+      "id": "cls_ce1_a",
+      "school_id": "sch_chebbi_sousse",
+      "name": "CE1 - Section A",
+      "level": "CE1",
+      "section": "A",
+      "max_capacity": 25,
+      "academic_year": "2025-2026",
+      "main_teacher_id": "usr_teacher_mansour"
+    },
+    {
+      "id": "cls_cm2_a",
+      "school_id": "sch_chebbi_sousse",
+      "name": "CM2 - Section A",
+      "level": "CM2",
+      "section": "A",
+      "max_capacity": 26,
+      "academic_year": "2025-2026",
+      "main_teacher_id": "usr_teacher_mansour"
+    },
+    {
+      "id": "cls_etoiles_cp",
+      "school_id": "sch_etoiles_tunis",
+      "name": "CP - Les Poussins",
+      "level": "CP",
+      "section": "A",
+      "max_capacity": 20,
+      "academic_year": "2025-2026",
+      "main_teacher_id": null
+    }
+  ],
+  "subjects": [
+    {
+      "id": "sub_ar",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Langue Arabe",
+      "coefficient": 3,
+      "level": "Tous",
+      "color": "#0284c7"
+    },
+    {
+      "id": "sub_fr",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Langue Française",
+      "coefficient": 3,
+      "level": "Tous",
+      "color": "#4f46e5"
+    },
+    {
+      "id": "sub_math",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Mathématiques",
+      "coefficient": 3,
+      "level": "Tous",
+      "color": "#0d9488"
+    },
+    {
+      "id": "sub_sci",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Éveil Scientifique & Sciences",
+      "coefficient": 2,
+      "level": "Tous",
+      "color": "#16a34a"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "rm_101",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Salle 101 (RDC)",
+      "capacity": 28,
+      "type": "Classe",
+      "is_available": true
+    },
+    {
+      "id": "rm_201",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Salle 201 (1er)",
+      "capacity": 30,
+      "type": "Classe",
+      "is_available": true
+    },
+    {
+      "id": "rm_lab",
+      "school_id": "sch_chebbi_sousse",
+      "name": "Labo Multimédia",
+      "capacity": 25,
+      "type": "Informatique",
+      "is_available": true
+    }
+  ],
+  "students": [
+    {
+      "id": "stu_chebbi_001",
+      "school_id": "sch_chebbi_sousse",
+      "matricule": "MAT-2025-001",
+      "first_name": "Rayan",
+      "last_name": "Ben Salem",
+      "birth_date": "2015-04-12",
+      "gender": "M",
+      "photo_url": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150",
+      "academic_year": "2025-2026",
+      "class_id": "cls_cm2_a",
+      "parent_name": "Mme Samira Ben Salem",
+      "parent_email": "samira.bensalem@gmail.com",
+      "parent_phone": "+216 22 555 888",
+      "address": "Avenue Habib Bourguiba, Sousse",
+      "medical_notes": "Légère allergie aux arachides.",
+      "registration_date": "2025-09-02",
+      "status": "ACTIF"
+    },
+    {
+      "id": "stu_chebbi_002",
+      "school_id": "sch_chebbi_sousse",
+      "matricule": "MAT-2025-002",
+      "first_name": "Nour",
+      "last_name": "Chahed",
+      "birth_date": "2015-08-20",
+      "gender": "F",
+      "photo_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
+      "academic_year": "2025-2026",
+      "class_id": "cls_cm2_a",
+      "parent_name": "M. Tarek Chahed",
+      "parent_email": "tarek.chahed@topnet.tn",
+      "parent_phone": "+216 55 444 333",
+      "address": "Route Touristique Kantaoui, Sousse",
+      "medical_notes": "Porte des lunettes de vue.",
+      "registration_date": "2025-09-03",
+      "status": "ACTIF"
+    },
+    {
+      "id": "stu_etoiles_001",
+      "school_id": "sch_etoiles_tunis",
+      "matricule": "ETOILE-2025-01",
+      "first_name": "Youssef",
+      "last_name": "Trabelsi",
+      "birth_date": "2018-05-10",
+      "gender": "M",
+      "photo_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150",
+      "academic_year": "2025-2026",
+      "class_id": "cls_etoiles_cp",
+      "parent_name": "M. Moncef Trabelsi",
+      "parent_email": "moncef.t@gmail.com",
+      "parent_phone": "+216 98 777 888",
+      "address": "Lac 2, Tunis",
+      "medical_notes": "Aucun antécédent.",
+      "registration_date": "2025-09-01",
+      "status": "ACTIF"
+    }
+  ],
+  "schedule_slots": [
+    {
+      "id": "slot_1",
+      "school_id": "sch_chebbi_sousse",
+      "academic_year": "2025-2026",
+      "class_id": "cls_cm2_a",
+      "subject_id": "sub_math",
+      "teacher_id": "usr_teacher_mansour",
+      "room_id": "rm_201",
+      "day_of_week": "Lundi",
+      "start_time": "08:00",
+      "end_time": "10:00"
+    },
+    {
+      "id": "slot_2",
+      "school_id": "sch_chebbi_sousse",
+      "academic_year": "2025-2026",
+      "class_id": "cls_cm2_a",
+      "subject_id": "sub_fr",
+      "teacher_id": "usr_teacher_mansour",
+      "room_id": "rm_201",
+      "day_of_week": "Lundi",
+      "start_time": "10:15",
+      "end_time": "12:15"
+    }
+  ],
+  "grades": [
+    {
+      "id": "grd_1",
+      "school_id": "sch_chebbi_sousse",
+      "student_id": "stu_chebbi_001",
+      "subject_id": "sub_math",
+      "class_id": "cls_cm2_a",
+      "term": "Trimestre 1",
+      "academic_year": "2025-2026",
+      "exam_type": "Contrôle Continu",
+      "score": 17.5,
+      "coefficient": 1,
+      "exam_date": "2025-10-20",
+      "comment": "Excellente maîtrise du calcul mental."
+    },
+    {
+      "id": "grd_2",
+      "school_id": "sch_chebbi_sousse",
+      "student_id": "stu_chebbi_001",
+      "subject_id": "sub_math",
+      "class_id": "cls_cm2_a",
+      "term": "Trimestre 1",
+      "academic_year": "2025-2026",
+      "exam_type": "Examen Trimestriel",
+      "score": 18,
+      "coefficient": 2,
+      "exam_date": "2025-11-28",
+      "comment": "Raisonnement rigoureux et soigné."
+    }
+  ],
+  "absences": [
+    {
+      "id": "abs_1",
+      "school_id": "sch_chebbi_sousse",
+      "student_id": "stu_chebbi_001",
+      "date": "2025-10-18",
+      "duration_hours": 2,
+      "academic_year": "2025-2026",
+      "is_justified": true,
+      "justification_reason": "Rendez-vous médical chez le dentiste (certificat fourni).",
+      "status": "JUSTIFIEE"
+    }
+  ],
+  "fee_plans": [
+    {
+      "id": "fp_chebbi_2025",
+      "school_id": "sch_chebbi_sousse",
+      "academic_year": "2025-2026",
+      "registration_fee": 250,
+      "term1_fee": 500,
+      "term2_fee": 500,
+      "term3_fee": 500,
+      "total_annual": 1750
+    },
+    {
+      "id": "fp_etoiles_2025",
+      "school_id": "sch_etoiles_tunis",
+      "academic_year": "2025-2026",
+      "registration_fee": 400,
+      "term1_fee": 800,
+      "term2_fee": 800,
+      "term3_fee": 800,
+      "total_annual": 2800
+    }
+  ],
+  "payments": [
+    {
+      "id": "pay_1",
+      "school_id": "sch_chebbi_sousse",
+      "receipt_number": "REC-2025-00101",
+      "student_id": "stu_chebbi_001",
+      "academic_year": "2025-2026",
+      "amount": 250,
+      "payment_date": "2025-09-02",
+      "payment_method": "Virement bancaire",
+      "tranche": "Frais Inscription",
+      "status": "PAYE",
+      "notes": "Inscription officielle rentrée 2025.",
+      "pdf_generated": true
+    },
+    {
+      "id": "pay_2",
+      "school_id": "sch_chebbi_sousse",
+      "receipt_number": "REC-2025-00142",
+      "student_id": "stu_chebbi_001",
+      "academic_year": "2025-2026",
+      "amount": 500,
+      "payment_date": "2025-10-05",
+      "payment_method": "Chèque",
+      "tranche": "Trimestre 1",
+      "status": "PAYE",
+      "notes": "Chèque BIAT N° 458921.",
+      "pdf_generated": true
+    }
+  ],
+  "homeworks": [
+    {
+      "id": "hw_1",
+      "school_id": "sch_chebbi_sousse",
+      "title": "Exercices fractions et calculs décimaux",
+      "description": "Compléter la fiche N°4 page 32 : exercices 1 à 6.",
+      "subject_id": "sub_math",
+      "class_id": "cls_cm2_a",
+      "teacher_id": "usr_teacher_mansour",
+      "due_date": "2026-11-20",
+      "academic_year": "2025-2026",
+      "attachments": [
+        "Fiche_Fractions_CM2.pdf"
+      ],
+      "correction_file": "Corrige_Type_Fractions_CM2.pdf",
+      "correction_published": true,
+      "max_score": 20
+    }
+  ],
+  "homework_submissions": [
+    {
+      "id": "sub_1",
+      "school_id": "sch_chebbi_sousse",
+      "homework_id": "hw_1",
+      "student_id": "stu_chebbi_001",
+      "submitted_at": "2026-11-12T14:30:00Z",
+      "content": "Monsieur, voici mon devoir sur les fractions complété.",
+      "file_name": "Devoir_Rayan_Fractions.pdf",
+      "score": 18.5,
+      "teacher_feedback": "Excellent travail Rayan ! Démarches bien détaillées.",
+      "graded_at": "2026-11-13T10:00:00Z",
+      "is_late": false,
+      "parent_acknowledged": true,
+      "parent_acknowledged_at": "2026-11-13T18:45:00Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "school_id": "sch_chebbi_sousse",
+      "sender_id": "usr_teacher_mansour",
+      "sender_name": "M. Youssef Mansour",
+      "sender_role": "TEACHER",
+      "recipient_id": "usr_student_rayan",
+      "recipient_name": "Rayan Ben Salem",
+      "recipient_role": "STUDENT",
+      "student_id": "stu_chebbi_001",
+      "subject": "Félicitations pour le devoir de fractions",
+      "body": "Bonjour Rayan,\n\nTrès beau travail sur la fiche de fractions. Continue ainsi !",
+      "sent_at": "2025-10-22T14:15:00Z",
+      "is_draft": false
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann_1",
+      "school_id": "sch_chebbi_sousse",
+      "title": "Réunion générale des parents d'élèves",
+      "content": "La direction de l'École a le plaisir de convier les parents à la réunion de rentrée.",
+      "target_role": "ALL",
+      "published_at": "2025-09-15T08:00:00Z",
+      "author_name": "Dr. Hamdi Hassen (Direction)"
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": "log_1",
+      "school_id": "sch_chebbi_sousse",
+      "timestamp": "2026-11-11T18:27:19.419Z",
+      "user_id": "usr_admin_chebbi",
+      "user_name": "Dr. Hamdi Hassen",
+      "user_role": "SCHOOL_ADMIN",
+      "action": "CREATION",
+      "entity": "School",
+      "entity_id": "sch_chebbi_sousse",
+      "details": "Initialisation de l'établissement dans la plateforme SaaS."
+    },
+    {
+      "id": "log_1794421656147",
+      "school_id": "sch_1794421656048_s30bj",
+      "timestamp": "2026-11-11T18:27:36.048Z",
+      "user_id": "usr_admin_1794421656048",
+      "user_name": "M. Slim Ben Amor",
+      "user_role": "SCHOOL_ADMIN",
+      "action": "INSCRIPTION_ECOLE",
+      "entity": "School",
+      "entity_id": "sch_1794421656048_s30bj",
+      "details": "Demande d'inscription de l'établissement \"Lycée Pilote Bourguiba\" (Statut: PENDING)."
+    },
+    {
+      "id": "log_1794421663970",
+      "school_id": "sch_1794421656048_s30bj",
+      "timestamp": "2026-11-11T18:27:43.970Z",
+      "user_id": "usr_superadmin",
+      "user_name": "Alexandre Martin (Platform)",
+      "user_role": "SUPER_ADMIN",
+      "action": "MODIFICATION_STATUT_ECOLE",
+      "entity": "School",
+      "entity_id": "sch_1794421656048_s30bj",
+      "details": "Statut de l'école \"Lycée Pilote Bourguiba\" modifié en ACTIVE."
+    }
+  ]
+}

@@ -8,30 +8,40 @@ import {
   Server,
   RotateCcw,
   Bell,
-  Smartphone
+  LogOut,
+  ShieldAlert,
+  Building
 } from 'lucide-react';
 import { DeploymentGuideModal } from './Deployment/DeploymentGuideModal';
 
-export const Header: React.FC = () => {
+interface Props {
+  onBackToSuperAdmin?: () => void;
+  onLogout?: () => void;
+}
+
+export const Header: React.FC<Props> = ({ onBackToSuperAdmin, onLogout }) => {
   const {
     currentUser,
+    currentSchool,
     switchRole,
-    users,
     academicYear,
     setAcademicYear,
     availableYears,
     resetToDefaultData,
-    notifications
+    notifications,
+    logout
   } = useApp();
 
   const [showDeploymentModal, setShowDeploymentModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState(false);
 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
+      case 'SUPER_ADMIN':
+        return { label: 'Super Admin Plateforme', color: 'bg-purple-100 text-purple-800 border-purple-300' };
+      case 'SCHOOL_ADMIN':
       case 'ADMIN':
-        return { label: 'Direction / Admin', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+        return { label: 'Direction / Admin École', color: 'bg-rose-50 text-rose-700 border-rose-200' };
       case 'TEACHER':
         return { label: 'Enseignant', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
       case 'PARENT':
@@ -40,26 +50,56 @@ export const Header: React.FC = () => {
         return { label: 'Élève', color: 'bg-blue-50 text-blue-700 border-blue-200' };
       case 'ACCOUNTANT':
         return { label: 'Comptable / Secrétariat', color: 'bg-amber-50 text-amber-700 border-amber-200' };
+      default:
+        return { label: 'Utilisateur', color: 'bg-slate-100 text-slate-700 border-slate-200' };
     }
   };
 
   const currentBadge = getRoleBadge(currentUser.role);
 
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      logout();
+      window.location.reload();
+    }
+  };
+
   return (
     <>
-      <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-40">
+      <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        {/* Super admin impersonation top notice */}
+        {onBackToSuperAdmin && (
+          <div className="bg-purple-900 text-purple-100 px-4 py-1.5 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-purple-300" />
+              <span>
+                Session Super Admin : Vous inspectez actuellement l'espace de <strong>{currentSchool?.name}</strong>.
+              </span>
+            </div>
+            <button
+              onClick={onBackToSuperAdmin}
+              className="px-2.5 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold text-[11px] transition"
+            >
+              ← Retour au Dashboard Super Admin
+            </button>
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Zone 1: Brand Wordmark */}
+          {/* Zone 1: Brand Wordmark & Active School */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs">
               <GraduationCap className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <span className="font-extrabold text-base tracking-tight text-slate-900 block leading-tight">
-                École Abou El Kacem Chebbi
+              <span className="font-extrabold text-base tracking-tight text-slate-900 block leading-tight truncate max-w-xs sm:max-w-md">
+                {currentSchool?.name || 'École Abou El Kacem Chebbi'}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
-                Gestion Scolaire · Sousse
+              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                <Building className="w-3 h-3 text-slate-400" />
+                {currentSchool?.address || 'Gestion Scolaire Multi-Établissements'}
               </span>
             </div>
           </div>
@@ -93,19 +133,19 @@ export const Header: React.FC = () => {
 
             <button
               onClick={() => {
-                if (window.confirm("Réinitialiser toutes les données de test d'origine de l'école ?")) {
+                if (window.confirm("Réinitialiser les données locales de l'école ?")) {
                   resetToDefaultData();
                 }
               }}
               className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition"
-              title="Réinitialiser le jeu de données démo"
+              title="Réinitialiser les données de test"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
             </button>
           </div>
 
-          {/* Zone 3: Role Switcher & User Profile */}
+          {/* Zone 3: Role Switcher & User Profile & Logout */}
           <div className="flex items-center gap-3 shrink-0">
             {/* Notifications drop trigger */}
             <div className="relative">
@@ -151,7 +191,7 @@ export const Header: React.FC = () => {
                 onChange={(e) => switchRole(e.target.value as UserRole)}
                 className="bg-transparent text-xs font-semibold text-slate-800 py-1 pr-2 rounded focus:outline-hidden cursor-pointer"
               >
-                <option value="ADMIN">Direction (Dr. Hamdi Hassen)</option>
+                <option value="ADMIN">Direction (Admin École)</option>
                 <option value="TEACHER">Enseignant (M. Youssef Mansour)</option>
                 <option value="PARENT">Parent (Mme Samira Ben Salem)</option>
                 <option value="STUDENT">Élève (Rayan Ben Salem)</option>
@@ -175,6 +215,15 @@ export const Header: React.FC = () => {
                 </span>
               </div>
             </div>
+
+            {/* Disconnect button */}
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+              title="Déconnexion de l'application"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>

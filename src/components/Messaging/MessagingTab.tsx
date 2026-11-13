@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Message, Announcement, UserRole } from '../../types';
+import { Message, Announcement, UserRole, User } from '../../types';
 import {
   Mail,
   Send,
@@ -60,8 +60,10 @@ export const MessagingTab: React.FC = () => {
   const [corrContent, setCorrContent] = useState('');
 
   // Eligible Recipients based on RBAC (Section 10.1 & 10.2)
-  const getEligibleRecipients = () => {
+  const getEligibleRecipients = (): User[] => {
     switch (currentUser.role) {
+      case 'SUPER_ADMIN':
+      case 'SCHOOL_ADMIN':
       case 'ADMIN':
         return users.filter((u) => u.id !== currentUser.id);
       case 'TEACHER':
@@ -69,13 +71,15 @@ export const MessagingTab: React.FC = () => {
         return users.filter((u) => u.role === 'PARENT');
       case 'PARENT':
         // Parents can message teachers and administration
-        return users.filter((u) => u.role === 'TEACHER' || u.role === 'ADMIN');
+        return users.filter((u) => u.role === 'TEACHER' || u.role === 'ADMIN' || u.role === 'SCHOOL_ADMIN');
       case 'ACCOUNTANT':
         // Accountant can message parents
         return users.filter((u) => u.role === 'PARENT');
       case 'STUDENT':
         // Students can message administration
-        return users.filter((u) => u.role === 'ADMIN');
+        return users.filter((u) => u.role === 'ADMIN' || u.role === 'SCHOOL_ADMIN');
+      default:
+        return users.filter((u) => u.id !== currentUser.id);
     }
   };
 

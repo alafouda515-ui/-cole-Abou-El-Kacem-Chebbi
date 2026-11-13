@@ -1,4 +1,16 @@
-export type UserRole = 'ADMIN' | 'TEACHER' | 'PARENT' | 'STUDENT' | 'ACCOUNTANT';
+export type UserRole = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMIN' | 'TEACHER' | 'PARENT' | 'STUDENT' | 'ACCOUNTANT';
+
+export interface School {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  email: string;
+  phone: string;
+  manager_name: string;
+  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED';
+  created_at?: string;
+}
 
 export interface User {
   id: string;
@@ -7,6 +19,8 @@ export interface User {
   role: UserRole;
   avatar?: string;
   phone?: string;
+  schoolId?: string;
+  schoolName?: string;
   linkedStudentId?: string; // For parents and students
   assignedSubjects?: string[]; // Subject IDs for teachers
   assignedClasses?: string[]; // Class IDs for teachers
